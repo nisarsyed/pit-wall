@@ -1,0 +1,13 @@
+docs/
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+.next/
+.fastf1-cache/
+.DS_Store
+.env
+.env.local
