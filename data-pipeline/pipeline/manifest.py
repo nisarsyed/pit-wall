@@ -1,3 +1,5 @@
+"""Race manifest loader: reads manifest.yaml and validates via pydantic."""
+
 from pathlib import Path
 
 import yaml

@@ -53,8 +53,19 @@ def build_curves_for_race(inp: RaceBuildInput) -> dict[str, Any]:
     compounds: dict[str, dict[str, Any]] = {}
     for compound, stints_map in per_compound.items():
         stints = list(stints_map.values())
-        fit = fit_compound_from_stints(stints)
+        try:
+            fit = fit_compound_from_stints(stints)
+        except ValueError as exc:
+            raise ValueError(
+                f"race {inp.race.id}: compound {compound}: {exc}"
+            ) from exc
         compounds[compound] = fit.to_dict()
+
+    if len(compounds) < 2:
+        raise ValueError(
+            f"race {inp.race.id}: only {len(compounds)} compound(s) fitted; "
+            f"spec requires at least 2 distinct compounds per race"
+        )
 
     return {
         "name": inp.race.name,

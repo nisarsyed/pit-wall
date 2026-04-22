@@ -43,7 +43,12 @@ def fit_compound(
     y_pred = slope * x + intercept
     ss_res = float(np.sum((y - y_pred) ** 2))
     ss_tot = float(np.sum((y - y.mean()) ** 2))
-    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    # If ss_tot == 0 (all y values identical), the fit is "perfect" iff residuals are also 0.
+    # Otherwise r2 is undefined; return 0.0.
+    if ss_tot > 0:
+        r2 = 1.0 - ss_res / ss_tot
+    else:
+        r2 = 1.0 if ss_res == 0 else 0.0
 
     return CompoundFit(
         slope=float(slope),
