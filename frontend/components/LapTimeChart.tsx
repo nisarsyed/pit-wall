@@ -103,7 +103,13 @@ export function LapTimeChart({
     });
   })();
 
-  const data = lapTimes.map((t, i) => ({ lap: i + 1, time: t }));
+  // Break the line at pit laps so the spikes don't escape the chart's y-domain
+  // and leave a jagged top edge. The ReferenceLine + "+Xs" label still communicates
+  // the pit event.
+  const data = lapTimes.map((t, i) => ({
+    lap: i + 1,
+    time: pitLapSet.has(i + 1) ? null : t,
+  }));
 
   return (
     <section className="space-y-3">
@@ -144,7 +150,7 @@ export function LapTimeChart({
                   y1={yMin}
                   y2={yMax}
                   fill={COMPOUND_BAND_FILL[band.compound] ?? "#ffffff"}
-                  fillOpacity={0.05}
+                  fillOpacity={0.1}
                   stroke="none"
                   ifOverflow="visible"
                 />
@@ -225,6 +231,7 @@ export function LapTimeChart({
                 stroke="var(--primary)"
                 strokeWidth={1.75}
                 dot={false}
+                connectNulls={false}
                 activeDot={{ r: 4, fill: "var(--primary)", stroke: "var(--popover)", strokeWidth: 2 }}
                 isAnimationActive={false}
               />

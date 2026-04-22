@@ -173,26 +173,50 @@ export function Timeline({
                 onBlur={() => setFocusedPitIdx((prev) => (prev === stintIdx ? null : prev))}
                 onKeyDown={(e) => handleKeyDown(e, stintIdx)}
                 style={{ left: `${leftPercent}%` }}
-                className={`absolute top-0 z-20 h-full w-[2px] -translate-x-1/2 cursor-ew-resize bg-foreground/60 transition-[background-color,transform] duration-150 hover:bg-foreground focus:bg-primary focus:outline-none ${
-                  isActive ? "bg-primary" : ""
+                className={`group absolute top-0 z-20 h-full w-[3px] -translate-x-1/2 cursor-ew-resize transition-[background-color,box-shadow] duration-150 focus:outline-none ${
+                  isActive
+                    ? "bg-primary shadow-[0_0_0_3px_rgba(255,24,1,0.2)]"
+                    : "bg-foreground/70 hover:bg-foreground"
                 }`}
               >
+                {/* Top grip handle — the main affordance */}
                 <span
                   aria-hidden
-                  className={`absolute left-1/2 top-0 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-foreground/70 bg-card transition-colors ${
-                    isActive ? "border-primary" : ""
+                  className={`pointer-events-none absolute left-1/2 -top-2 flex h-5 w-6 -translate-x-1/2 items-center justify-center rounded-sm border transition-colors ${
+                    isActive
+                      ? "border-primary bg-popover"
+                      : "border-foreground/70 bg-popover group-hover:border-foreground"
                   }`}
-                />
+                >
+                  <span className="flex gap-[2px]">
+                    <span
+                      className={`block h-2 w-[1.5px] ${
+                        isActive ? "bg-primary" : "bg-foreground/80"
+                      }`}
+                    />
+                    <span
+                      className={`block h-2 w-[1.5px] ${
+                        isActive ? "bg-primary" : "bg-foreground/80"
+                      }`}
+                    />
+                  </span>
+                </span>
+
+                {/* Bottom notch — subtle directional cue without the clutter of the old diamond */}
                 <span
                   aria-hidden
-                  className={`absolute bottom-0 left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rotate-45 border border-foreground/70 bg-card transition-colors ${
-                    isActive ? "border-primary" : ""
+                  className={`pointer-events-none absolute left-1/2 bottom-0 h-[6px] w-[6px] -translate-x-1/2 translate-y-1/2 rotate-45 border-r border-b transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary"
+                      : "border-foreground/70 bg-foreground/70"
                   }`}
                 />
+
+                {/* Floating lap readout tooltip, only while active */}
                 {isActive ? (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute left-1/2 -top-9 -translate-x-1/2 rounded border border-primary/60 bg-popover px-2 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-foreground shadow-lg"
+                    className="pointer-events-none absolute left-1/2 -top-11 -translate-x-1/2 rounded-md border border-primary/70 bg-popover px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
                   >
                     Lap {draggingIdx === stintIdx && hoverLap !== null ? hoverLap : stint.start}
                   </span>

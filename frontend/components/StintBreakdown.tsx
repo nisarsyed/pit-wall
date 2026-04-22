@@ -84,9 +84,13 @@ function StintCard({
   onRemove: () => void;
 }): React.ReactNode {
   return (
-    <Card className="border-border bg-card/80 transition-colors hover:border-border/80">
+    <Card className="relative overflow-hidden border-border bg-card/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-border/60 hover:bg-card hover:shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+      <span
+        aria-hidden
+        className={`absolute inset-x-0 top-0 h-0.5 ${compoundChip(stint.compound)}`}
+      />
       <CardContent className="flex h-full flex-col gap-4 p-4">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Stint
