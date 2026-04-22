@@ -8,11 +8,12 @@ from pit_wall.api.middleware import install_middleware
 from pit_wall.api.routes import router
 from pit_wall.data.curves import load_curves
 from pit_wall.logging_config import configure_logging
+from pit_wall.sim.calibration import calibrate_all
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    app.state.curves = load_curves()
+    app.state.curves = calibrate_all(load_curves())
     yield
 
 

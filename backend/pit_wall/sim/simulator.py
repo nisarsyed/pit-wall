@@ -51,7 +51,9 @@ def simulate(
         curve = race.compounds[stint.compound]
         tyre_delta = curve.intercept + curve.slope * stint_lap
         fuel_delta = fuel_kg_remaining(lap, race.total_laps) * FUEL_PENALTY_S_PER_KG
-        lap_time = race.base_lap_time_s + tyre_delta + fuel_delta
+        lap_time = (
+            race.base_lap_time_s + tyre_delta + fuel_delta + race.calibration_offset_s
+        )
         if lap in pit_laps:
             lap_time += race.pit_loss_s
         lap_times.append(lap_time)

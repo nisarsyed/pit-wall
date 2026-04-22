@@ -37,6 +37,12 @@ class RaceCurves(BaseModel):
     pit_loss_s: float
     compounds: dict[str, CompoundCurve]
     actual_winner: ActualWinner | None = None
+    # Per-lap adjustment (seconds) that shifts the simulator to land on the
+    # recorded winner's total time when given the winner's exact strategy.
+    # Absorbs the aggregate residual of the linear tyre-curve fit + pit/SC
+    # effects the model doesn't capture. Set to 0.0 by default; populated by
+    # sim.calibration at app load time.
+    calibration_offset_s: float = 0.0
 
 
 def load_curves(path: Path = DEFAULT_CURVES_PATH) -> dict[str, RaceCurves]:
