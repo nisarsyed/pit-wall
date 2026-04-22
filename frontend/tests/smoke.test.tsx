@@ -13,6 +13,6 @@ describe("Home page", () => {
       render(await Home());
     });
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pit Wall");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/out-strategise/i);
   });
 });
