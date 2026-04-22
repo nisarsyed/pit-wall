@@ -92,11 +92,12 @@ def _load_fastf1_session(race: Race) -> tuple[int, pd.DataFrame, dict[str, Any]]
 
     total_laps = int(session.laps["LapNumber"].max())
 
-    # Session results DataFrame: indexed by driver abbreviation, has columns like
-    # FullName, Position, Time, Points. Winner = row with Position == 1.
+    # Session results DataFrame: indexed by DriverNumber (e.g. "1"), has columns
+    # FullName, Abbreviation, Position, Time, Points.
+    # Winner = row with Position == 1. Use Abbreviation column to match laps.
     results = session.results
     winner_row = results[results["Position"] == 1].iloc[0]
-    winner_abbr = str(winner_row.name)  # index is the 3-letter code
+    winner_abbr = str(winner_row["Abbreviation"])  # 3-letter code (e.g. "VER")
     winner_name = str(winner_row["FullName"])
 
     # Winner's lap data → reconstruct strategy (list of {compound, start_lap} per stint)
