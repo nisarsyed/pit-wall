@@ -26,7 +26,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pit Wall",
+  title: {
+    default: "Pit Wall",
+    template: "%s · Pit Wall",
+  },
   description:
     "An F1 race strategy simulator grounded in real stint data.",
 };
