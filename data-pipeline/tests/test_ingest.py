@@ -34,50 +34,53 @@ def test_filters_inlaps_outlaps_and_sc() -> None:
     laps = pd.DataFrame(
         [
             _mk_lap("VER", 1, 1, "MEDIUM", 92.0),               # lap 1 -> drop
-            _mk_lap("VER", 2, 1, "MEDIUM", 90.5),               # keep
+            _mk_lap("VER", 2, 1, "MEDIUM", 90.5),               # stint_lap=1 -> drop (warm-up)
             _mk_lap("VER", 3, 1, "MEDIUM", 91.0, track_status="4"),  # SC -> drop
-            _mk_lap("VER", 4, 1, "MEDIUM", 90.7),               # keep
+            _mk_lap("VER", 4, 1, "MEDIUM", 90.7),               # stint_lap=3 -> keep
             _mk_lap("VER", 5, 1, "MEDIUM", 95.0, pit_in=True),  # in-lap -> drop
             _mk_lap("VER", 6, 2, "HARD",   94.0, pit_out=True), # out-lap -> drop
-            _mk_lap("VER", 7, 2, "HARD",   91.5),               # keep
-            _mk_lap("VER", 8, 2, "HARD",   91.6, is_accurate=False),  # not accurate -> drop
+            _mk_lap("VER", 7, 2, "HARD",   91.5),               # stint_lap=1 -> drop (warm-up)
+            _mk_lap("VER", 8, 2, "HARD",   91.6),               # stint_lap=2 -> keep
+            _mk_lap("VER", 9, 2, "HARD",   91.7, is_accurate=False),  # not accurate -> drop
         ]
     )
 
     kept: list[CompoundStintLap] = extract_valid_stint_laps(laps)
 
     kept_lap_numbers = sorted(k.lap_number for k in kept)
-    assert kept_lap_numbers == [2, 4, 7]
+    assert kept_lap_numbers == [4, 8]
 
 
 def test_drops_traffic_laps_over_107_of_stint_best():
     laps = pd.DataFrame(
         [
-            _mk_lap("HAM", 2, 1, "MEDIUM", 90.0),
-            _mk_lap("HAM", 3, 1, "MEDIUM", 90.2),
-            _mk_lap("HAM", 4, 1, "MEDIUM", 90.1),
+            _mk_lap("HAM", 2, 1, "MEDIUM", 90.0),   # stint_lap=1 -> drop (warm-up)
+            _mk_lap("HAM", 3, 1, "MEDIUM", 90.2),   # stint_lap=2 -> keep
+            _mk_lap("HAM", 4, 1, "MEDIUM", 90.1),   # stint_lap=3 -> keep
             _mk_lap("HAM", 5, 1, "MEDIUM", 97.0),   # > 107% of stint best 90.0 -> drop
-            _mk_lap("HAM", 6, 1, "MEDIUM", 90.3),
+            _mk_lap("HAM", 6, 1, "MEDIUM", 90.3),   # stint_lap=5 -> keep
         ]
     )
     kept = extract_valid_stint_laps(laps)
     assert 5 not in {k.lap_number for k in kept}
-    assert len(kept) == 4
+    assert len(kept) == 3
 
 
-def test_stint_lap_indexing_is_one_indexed_per_stint():
+def test_stint_lap_indexing_is_two_indexed_after_warmup_drop():
+    # After warm-up filter (stint_lap=1 dropped), the first surviving lap per stint
+    # has stint_lap=2 (computed from LapNumber - stint_start_lap + 1).
     laps = pd.DataFrame(
         [
-            _mk_lap("VER", 2, 1, "MEDIUM", 90.0),
-            _mk_lap("VER", 3, 1, "MEDIUM", 90.1),
-            _mk_lap("VER", 7, 2, "HARD", 91.0),
-            _mk_lap("VER", 8, 2, "HARD", 91.1),
+            _mk_lap("VER", 2, 1, "MEDIUM", 90.0),   # stint_lap=1 -> dropped
+            _mk_lap("VER", 3, 1, "MEDIUM", 90.1),   # stint_lap=2 -> kept
+            _mk_lap("VER", 7, 2, "HARD", 91.0),     # stint_lap=1 -> dropped
+            _mk_lap("VER", 8, 2, "HARD", 91.1),     # stint_lap=2 -> kept
         ]
     )
     kept = extract_valid_stint_laps(laps)
-    by_stint = {(k.driver, k.stint): k.stint_lap for k in kept if k.lap_number in {2, 7}}
-    assert by_stint[("VER", 1)] == 1
-    assert by_stint[("VER", 2)] == 1
+    by_stint = {(k.driver, k.stint): k.stint_lap for k in kept if k.lap_number in {3, 8}}
+    assert by_stint[("VER", 1)] == 2
+    assert by_stint[("VER", 2)] == 2
 
 
 @pytest.mark.parametrize("missing_col", ["Driver", "LapNumber", "Stint", "Compound", "LapTime"])

@@ -10,7 +10,7 @@ races:
     name: "Hungarian Grand Prix"
     country: "Hungary"
     year: 2023
-    round: 12
+    round: 11
     session: "R"
     pit_loss_s: 20.9
   - id: "2024_british"

@@ -51,8 +51,16 @@ def build_curves_for_race(inp: RaceBuildInput) -> dict[str, Any]:
             (lap.driver, lap.stint), []
         ).append((lap.stint_lap, delta))
 
+    # Wet-weather compounds have time trends driven by track conditions (drying
+    # or worsening), not by tyre degradation. Exclude them from the degradation
+    # fit; the strategy sim only needs dry-compound curves.
+    WET_COMPOUNDS = {"INTERMEDIATE", "WET"}
+
     compounds: dict[str, dict[str, Any]] = {}
     for compound, stints_map in per_compound.items():
+        if compound.upper() in WET_COMPOUNDS:
+            log.info("race %s: skipping wet-weather compound %s", inp.race.id, compound)
+            continue
         stints = list(stints_map.values())
         try:
             fit = fit_compound_from_stints(stints)

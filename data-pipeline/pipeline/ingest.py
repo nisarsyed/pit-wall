@@ -68,6 +68,11 @@ def extract_valid_stint_laps(laps: pd.DataFrame) -> list[CompoundStintLap]:
         _stint_lap=df["LapNumber"] - df["_stint_start_lap"] + 1,
     )
 
+    # Filter 6: drop the first lap on each stint (stint_lap == 1).
+    # This is the tyre warm-up lap; including it biases the degradation slope
+    # negative on short stints because tyres are not yet at working temperature.
+    df = df[df["_stint_lap"] > 1]
+
     out: list[CompoundStintLap] = []
     records = df[
         ["Driver", "Stint", "Compound", "LapNumber", "_stint_lap", "lap_s_internal"]
