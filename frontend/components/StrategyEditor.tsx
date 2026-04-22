@@ -64,8 +64,8 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
   return (
     <>
       <ResponsiveBanner />
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-6">
           <Timeline
             totalLaps={race.total_laps}
             strategy={strategy.stints}

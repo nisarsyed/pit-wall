@@ -67,8 +67,8 @@ export function LapTimeChart({ lapTimes, pitLaps }: Props): React.ReactNode {
           </span>
         </div>
       </div>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64 min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <LineChart data={data} margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
             <CartesianGrid
               stroke="var(--foreground)"
