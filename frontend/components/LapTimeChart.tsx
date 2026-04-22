@@ -16,57 +16,135 @@ interface Props {
   pitLaps: number[];
 }
 
+const AXIS_LABEL_STYLE = {
+  fontSize: 9,
+  fontFamily: "var(--font-mono)",
+  letterSpacing: "0.15em",
+  textTransform: "uppercase" as const,
+  fill: "var(--muted-foreground)",
+};
+
 export function LapTimeChart({ lapTimes, pitLaps }: Props): React.ReactNode {
   if (lapTimes.length === 0) {
     return (
-      <div className="flex h-72 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-gray-400">
-        Chart will appear once the first simulation runs.
+      <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border bg-card/40">
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Awaiting simulation
+          </span>
+          <span className="text-xs text-muted-foreground/70">
+            Move a pit stop or change a compound to populate the lap-time trace.
+          </span>
+        </div>
       </div>
     );
   }
+
   const data = lapTimes.map((t, i) => ({ lap: i + 1, time: t }));
   const yMin = Math.floor(Math.min(...lapTimes) - 1);
   const yMax = Math.ceil(Math.max(...lapTimes) + 1);
+
   return (
-    <div className="h-72 rounded-lg border border-white/10 bg-white/5 p-4">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
-          <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" />
-          <XAxis
-            dataKey="lap"
-            stroke="#a1a1aa"
-            tick={{ fontSize: 11 }}
-            label={{ value: "Lap", position: "insideBottom", offset: -4, fill: "#a1a1aa" }}
+    <div className="rounded-lg border border-border bg-card/60 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Lap-time trace
+          </span>
+          <span
+            aria-hidden
+            className="h-px w-8 bg-gradient-to-r from-primary/0 via-primary to-primary/0"
           />
-          <YAxis
-            stroke="#a1a1aa"
-            tick={{ fontSize: 11 }}
-            domain={[yMin, yMax]}
-            label={{
-              value: "Lap time (s)",
-              angle: -90,
-              position: "insideLeft",
-              fill: "#a1a1aa",
-              style: { textAnchor: "middle" },
-            }}
-          />
-          <Tooltip
-            contentStyle={{ background: "#111", border: "1px solid #333", fontSize: 12 }}
-            formatter={(val) => [`${Number(val).toFixed(3)}s`, "Lap time"]}
-            labelFormatter={(label) => `Lap ${label}`}
-          />
-          <Line type="monotone" dataKey="time" stroke="#ef4444" strokeWidth={2} dot={false} />
-          {pitLaps.map((pit) => (
-            <ReferenceLine
-              key={pit}
-              x={pit}
-              stroke="#ffffff40"
-              strokeDasharray="2 2"
-              label={{ value: "pit", position: "top", fill: "#a1a1aa", fontSize: 10 }}
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 bg-primary" aria-hidden />
+            Simulated
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 border-l border-dashed border-foreground/40" aria-hidden />
+            Pit
+          </span>
+        </div>
+      </div>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
+            <CartesianGrid
+              stroke="var(--foreground)"
+              strokeOpacity={0.06}
+              strokeDasharray="2 4"
+              vertical={false}
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+            <XAxis
+              dataKey="lap"
+              stroke="var(--foreground)"
+              strokeOpacity={0.3}
+              tickLine={false}
+              axisLine={{ strokeOpacity: 0.15 }}
+              tick={AXIS_LABEL_STYLE}
+              minTickGap={24}
+            />
+            <YAxis
+              stroke="var(--foreground)"
+              strokeOpacity={0.3}
+              tickLine={false}
+              axisLine={{ strokeOpacity: 0.15 }}
+              tick={AXIS_LABEL_STYLE}
+              domain={[yMin, yMax]}
+              width={40}
+              tickFormatter={(v) => `${Math.round(Number(v))}s`}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "var(--popover)",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
+                padding: "8px 10px",
+              }}
+              itemStyle={{ color: "var(--foreground)" }}
+              labelStyle={{
+                color: "var(--muted-foreground)",
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                marginBottom: 4,
+              }}
+              formatter={(val) => [`${Number(val).toFixed(3)}s`, "Lap time"]}
+              labelFormatter={(label) => `Lap ${label}`}
+              cursor={{ stroke: "var(--foreground)", strokeOpacity: 0.15, strokeWidth: 1 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="time"
+              stroke="var(--primary)"
+              strokeWidth={1.75}
+              dot={false}
+              activeDot={{ r: 4, fill: "var(--primary)", stroke: "var(--popover)", strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
+            {pitLaps.map((pit) => (
+              <ReferenceLine
+                key={pit}
+                x={pit}
+                stroke="var(--foreground)"
+                strokeOpacity={0.4}
+                strokeDasharray="3 3"
+                label={{
+                  value: "pit",
+                  position: "top",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 9,
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.15em",
+                }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
