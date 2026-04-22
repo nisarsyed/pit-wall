@@ -4,7 +4,10 @@
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "pnpm": {
-    "ignoredBuiltDependencies": ["sharp", "unrs-resolver"]
+    "ignoredBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "scripts": {
     "dev": "next dev",
@@ -15,6 +18,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.99.2",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
