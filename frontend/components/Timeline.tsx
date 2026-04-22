@@ -231,6 +231,16 @@ export function Timeline({
       <div className="relative h-5 w-full">
         {ticks.map(({ lap, labeled }) => {
           const leftPercent = ((lap - 1) / Math.max(1, totalLaps - 1)) * 100;
+          const isFirst = lap === 1;
+          const isLast = lap === totalLaps;
+          // Tick mark centers on the percentage. The label's horizontal alignment
+          // swings so the text stays inside the card: first tick left-aligns, last
+          // tick right-aligns, everything else stays centered.
+          const labelAlign = isFirst
+            ? "left-0"
+            : isLast
+              ? "right-0"
+              : "left-1/2 -translate-x-1/2";
           return (
             <div
               key={`tick-${lap}`}
@@ -241,7 +251,9 @@ export function Timeline({
                 className={`block w-px ${labeled ? "h-2 bg-foreground/30" : "h-1 bg-foreground/15"}`}
               />
               {labeled ? (
-                <span className="mt-1 block whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                <span
+                  className={`absolute top-3 whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground ${labelAlign}`}
+                >
                   Lap {lap}
                 </span>
               ) : null}
