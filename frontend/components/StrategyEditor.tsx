@@ -1,14 +1,111 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+import { CompoundPicker } from "./CompoundPicker";
+import { ResultsPanel } from "./ResultsPanel";
+import { Timeline } from "./Timeline";
+import { useSimulate } from "../lib/queries";
+import { useDebouncedValue } from "../lib/useDebouncedValue";
+import { useStrategy } from "../lib/useStrategy";
 import type { RaceDetail } from "../lib/types";
 
+const DEBOUNCE_MS = 150;
+
+function fallbackInitialStrategy(race: RaceDetail) {
+  if (race.actual_winner && race.actual_winner.strategy.length > 0) {
+    return race.actual_winner.strategy;
+  }
+  const compounds = Object.keys(race.compounds);
+  const first = compounds[0] ?? "MEDIUM";
+  const second = compounds[1] ?? "HARD";
+  return [
+    { compound: first, start_lap: 1 },
+    { compound: second, start_lap: Math.floor(race.total_laps / 2) },
+  ];
+}
+
 export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode {
+  const initial = fallbackInitialStrategy(race);
+  const compoundsAvailable = Object.keys(race.compounds);
+  const strategy = useStrategy({
+    totalLaps: race.total_laps,
+    compoundsAvailable,
+    initial,
+  });
+  const debouncedStints = useDebouncedValue(strategy.stints, DEBOUNCE_MS);
+  const simulate = useSimulate(race.id);
+  const [selectedStintIdx, setSelectedStintIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!strategy.isValid) return;
+    simulate.mutate({ stints: debouncedStints });
+    // We intentionally only re-fire when the debounced strategy changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedStints, strategy.isValid]);
+
+  const totalTimeS = simulate.data?.total_time_s ?? null;
+  const deltaS = simulate.data?.total_time_vs_actual_s ?? null;
+  const warnings = simulate.data?.warnings ?? [];
+  const selected = selectedStintIdx !== null ? strategy.stints[selectedStintIdx] : undefined;
+
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-8">
-      <p className="text-gray-400">
-        Strategy editor — {Object.keys(race.compounds).length} compounds, {race.total_laps}{" "}
-        laps. Interactive timeline coming next.
-      </p>
+    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="space-y-6">
+        <Timeline
+          totalLaps={race.total_laps}
+          strategy={strategy.stints}
+          selectedStintIdx={selectedStintIdx}
+          onMovePit={(idx, lap) => strategy.movePit(idx, lap)}
+          onSelectStint={setSelectedStintIdx}
+          onRemovePit={(idx) => {
+            strategy.removePit(idx);
+            setSelectedStintIdx(null);
+          }}
+        />
+        {selected !== undefined && selectedStintIdx !== null ? (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p className="mb-2 text-sm text-gray-400">
+              Stint {selectedStintIdx + 1} compound:
+            </p>
+            <CompoundPicker
+              current={selected.compound}
+              available={compoundsAvailable}
+              onSelect={(compound) => {
+                const idx = selectedStintIdx;
+                strategy.setCompound(idx, compound);
+              }}
+            />
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={strategy.addPit}
+            className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10"
+          >
+            + Add pit stop
+          </button>
+          <button
+            type="button"
+            onClick={strategy.reset}
+            className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10"
+          >
+            Reset to actual strategy
+          </button>
+        </div>
+        {!strategy.isValid ? (
+          <p className="text-sm text-amber-300">
+            Strategy must use at least 2 distinct compounds and have a valid pit order.
+          </p>
+        ) : null}
+      </div>
+      <ResultsPanel
+        totalTimeS={totalTimeS}
+        deltaS={deltaS}
+        warnings={warnings}
+        loading={simulate.isPending}
+      />
     </div>
   );
 }
