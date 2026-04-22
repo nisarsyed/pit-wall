@@ -1,0 +1,44 @@
+[project]
+name = "pit-wall-pipeline"
+version = "0.1.0"
+description = "Offline pipeline: FastF1 -> fuel-corrected stint laps -> per-compound curves.json"
+requires-python = ">=3.13"
+dependencies = [
+    "fastf1>=3.8",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-PyYAML",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pipeline"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+# FastF1 lacks type stubs; scope the relaxation narrowly.
+[[tool.mypy.overrides]]
+module = ["fastf1", "fastf1.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,22 @@
+races:
+  - id: "2023_bahrain"
+    name: "Bahrain Grand Prix"
+    country: "Bahrain"
+    year: 2023
+    round: 1
+    session: "R"
+    pit_loss_s: 22.4
+  - id: "2023_hungary"
+    name: "Hungarian Grand Prix"
+    country: "Hungary"
+    year: 2023
+    round: 12
+    session: "R"
+    pit_loss_s: 20.9
+  - id: "2024_british"
+    name: "British Grand Prix"
+    country: "United Kingdom"
+    year: 2024
+    round: 12
+    session: "R"
+    pit_loss_s: 21.2
