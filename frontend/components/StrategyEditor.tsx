@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { CompoundPicker } from "./CompoundPicker";
 import { LapTimeChart } from "./LapTimeChart";
+import { StintInspector } from "./StintInspector";
 import { ResultsPanel } from "./ResultsPanel";
 import { Timeline } from "./Timeline";
 import { useSimulate } from "../lib/queries";
@@ -48,7 +48,15 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
   const totalTimeS = simulate.data?.total_time_s ?? null;
   const deltaS = simulate.data?.total_time_vs_actual_s ?? null;
   const warnings = simulate.data?.warnings ?? [];
-  const selected = selectedStintIdx !== null ? strategy.stints[selectedStintIdx] : undefined;
+
+  const selectedIdx = selectedStintIdx;
+  const selectedStint = selectedIdx !== null ? strategy.stints[selectedIdx] : undefined;
+  const selectedEndLap =
+    selectedIdx !== null && selectedIdx < strategy.stints.length
+      ? selectedIdx + 1 < strategy.stints.length
+        ? strategy.stints[selectedIdx + 1]!.start_lap - 1
+        : race.total_laps
+      : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -68,20 +76,20 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
           lapTimes={simulate.data?.lap_times ?? []}
           pitLaps={strategy.stints.slice(1).map((s) => s.start_lap)}
         />
-        {selected !== undefined && selectedStintIdx !== null ? (
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p className="mb-2 text-sm text-gray-400">
-              Stint {selectedStintIdx + 1} compound:
-            </p>
-            <CompoundPicker
-              current={selected.compound}
-              available={compoundsAvailable}
-              onSelect={(compound) => {
-                const idx = selectedStintIdx;
-                strategy.setCompound(idx, compound);
-              }}
-            />
-          </div>
+        {selectedStint && selectedIdx !== null && selectedEndLap !== null ? (
+          <StintInspector
+            stintIdx={selectedIdx}
+            stint={selectedStint}
+            endLap={selectedEndLap}
+            laps={selectedEndLap - selectedStint.start_lap + 1}
+            compoundsAvailable={compoundsAvailable}
+            canRemove={selectedIdx > 0}
+            onSelectCompound={(compound) => strategy.setCompound(selectedIdx, compound)}
+            onRemove={() => {
+              strategy.removePit(selectedIdx);
+              setSelectedStintIdx(null);
+            }}
+          />
         ) : null}
         <div className="flex gap-2">
           <button
