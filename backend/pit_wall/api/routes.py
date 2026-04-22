@@ -5,12 +5,17 @@ from fastapi import APIRouter, HTTPException, Request
 from pit_wall.api.schemas import (
     ActualWinnerOut,
     CompoundCurveOut,
+    ErrorResponse,
     HealthResponse,
     RaceDetail,
     RaceListItem,
+    SimulateResponse,
+    StrategyRequest,
     StrategyStintOut,
 )
-from pit_wall.data.curves import RaceCurves
+from pit_wall.data.curves import RaceCurves, StrategyStint
+from pit_wall.sim.simulator import simulate
+from pit_wall.sim.validator import StrategyError, warnings_for_strategy
 
 router = APIRouter()
 
@@ -84,4 +89,41 @@ def race_detail(race_id: str, request: Request) -> RaceDetail:
             if race.actual_winner
             else None
         ),
+    )
+
+
+@router.post(
+    "/races/{race_id}/simulate",
+    response_model=SimulateResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+def simulate_strategy(
+    race_id: str,
+    body: StrategyRequest,
+    request: Request,
+) -> SimulateResponse:
+    curves = _get_curves(request)
+    race = curves.get(race_id)
+    if race is None:
+        raise HTTPException(status_code=404, detail=f"race '{race_id}' not found")
+
+    strategy = [StrategyStint(compound=s.compound, start_lap=s.start_lap) for s in body.stints]
+
+    try:
+        actual = race.actual_winner.total_time_s if race.actual_winner else None
+        result = simulate(race, strategy, actual_winning_time_s=actual)
+    except StrategyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    warnings = warnings_for_strategy(race, strategy)
+
+    return SimulateResponse(
+        lap_times=result.lap_times,
+        cumulative_times=result.cumulative_times,
+        total_time_s=result.total_time_s,
+        total_time_vs_actual_s=result.total_time_vs_actual_s,
+        warnings=warnings,
     )
