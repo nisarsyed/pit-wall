@@ -157,7 +157,9 @@ export function Timeline({
         </div>
         {stints.slice(1).map((stint, i) => {
             const stintIdx = i + 1;
-            const leftPercent = ((stint.start - 1) / Math.max(1, totalLaps - 1)) * 100;
+            // Match the flex-sized stint-block boundaries: each lap takes 1/totalLaps
+            // of the bar, so the handle at the start of lap N sits at (N-1)/totalLaps.
+            const leftPercent = ((stint.start - 1) / totalLaps) * 100;
             const isActive = draggingIdx === stintIdx || focusedPitIdx === stintIdx;
             return (
               <div
@@ -228,7 +230,7 @@ export function Timeline({
       {/* Tick rail */}
       <div className="relative h-5 w-full">
         {ticks.map(({ lap, labeled }) => {
-          const leftPercent = ((lap - 1) / Math.max(1, totalLaps - 1)) * 100;
+          const leftPercent = ((lap - 1) / totalLaps) * 100;
           const isFirst = lap === 1;
           const isLast = lap === totalLaps;
           // Tick mark centers on the percentage. The label's horizontal alignment
