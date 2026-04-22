@@ -81,3 +81,46 @@ def test_build_produces_expected_shape():
         assert "slope" in curve and "intercept" in curve
         assert curve["r2"] >= 0.0
         assert len(curve["valid_stint_range"]) == 2
+
+
+def test_build_includes_actual_winner_when_provided():
+    race = Race(
+        id="2023_test",
+        name="Test GP",
+        country="T",
+        year=2023,
+        round=1,
+        session="R",
+        pit_loss_s=22.0,
+    )
+    winner = {
+        "name": "Max Verstappen",
+        "strategy": [
+            {"compound": "SOFT", "start_lap": 1},
+            {"compound": "HARD", "start_lap": 15},
+        ],
+        "total_time_s": 5543.27,
+    }
+    inp = RaceBuildInput(
+        race=race,
+        total_laps=36,
+        laps=_synthetic_laps(),
+        actual_winner=winner,
+    )
+    result = build_curves_for_race(inp)
+    assert result["actual_winner"] == winner
+
+
+def test_build_omits_actual_winner_when_none():
+    race = Race(
+        id="2023_test",
+        name="Test GP",
+        country="T",
+        year=2023,
+        round=1,
+        session="R",
+        pit_loss_s=22.0,
+    )
+    inp = RaceBuildInput(race=race, total_laps=36, laps=_synthetic_laps())
+    result = build_curves_for_race(inp)
+    assert "actual_winner" not in result

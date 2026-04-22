@@ -21,6 +21,7 @@ class RaceBuildInput:
     race: Race
     total_laps: int
     laps: pd.DataFrame
+    actual_winner: dict[str, Any] | None = None
 
 
 def build_curves_for_race(inp: RaceBuildInput) -> dict[str, Any]:
@@ -67,7 +68,7 @@ def build_curves_for_race(inp: RaceBuildInput) -> dict[str, Any]:
             f"spec requires at least 2 distinct compounds per race"
         )
 
-    return {
+    out: dict[str, Any] = {
         "name": inp.race.name,
         "country": inp.race.country,
         "year": inp.race.year,
@@ -76,17 +77,53 @@ def build_curves_for_race(inp: RaceBuildInput) -> dict[str, Any]:
         "pit_loss_s": inp.race.pit_loss_s,
         "compounds": compounds,
     }
+    if inp.actual_winner is not None:
+        out["actual_winner"] = inp.actual_winner
+    return out
 
 
-def _load_fastf1_session(race: Race) -> tuple[int, pd.DataFrame]:
-    """Fetch a real race session via FastF1. Isolated so tests don't need network."""
+def _load_fastf1_session(race: Race) -> tuple[int, pd.DataFrame, dict[str, Any]]:
+    """Fetch a real race session via FastF1. Returns total_laps, all laps, and winner's result."""
     import fastf1  # local import: heavy + optional at test time
 
     fastf1.Cache.enable_cache(".fastf1-cache")
     session = fastf1.get_session(race.year, race.round, race.session)
     session.load(laps=True, telemetry=False, weather=False, messages=False)
+
     total_laps = int(session.laps["LapNumber"].max())
-    return total_laps, session.laps
+
+    # Session results DataFrame: indexed by driver abbreviation, has columns like
+    # FullName, Position, Time, Points. Winner = row with Position == 1.
+    results = session.results
+    winner_row = results[results["Position"] == 1].iloc[0]
+    winner_abbr = str(winner_row.name)  # index is the 3-letter code
+    winner_name = str(winner_row["FullName"])
+
+    # Winner's lap data → reconstruct strategy (list of {compound, start_lap} per stint)
+    winner_laps = session.laps[session.laps["Driver"] == winner_abbr].sort_values("LapNumber")
+    strategy: list[dict[str, Any]] = []
+    for stint in winner_laps["Stint"].dropna().unique():
+        stint_laps = winner_laps[winner_laps["Stint"] == stint]
+        compound_vals = stint_laps["Compound"].dropna().unique()
+        if len(compound_vals) == 0:
+            continue
+        start_lap = int(stint_laps["LapNumber"].min())
+        strategy.append({
+            "compound": str(compound_vals[0]).upper(),
+            "start_lap": start_lap,
+        })
+    strategy.sort(key=lambda s: s["start_lap"])
+
+    # Total time: results["Time"] for winner is a Timedelta from session start
+    winner_time = winner_row["Time"]
+    total_time_s = float(winner_time.total_seconds()) if pd.notna(winner_time) else 0.0
+
+    actual_winner = {
+        "name": winner_name,
+        "strategy": strategy,
+        "total_time_s": total_time_s,
+    }
+    return total_laps, session.laps, actual_winner
 
 
 def build_all(manifest_path: Path, output_path: Path) -> dict[str, Any]:
@@ -94,9 +131,14 @@ def build_all(manifest_path: Path, output_path: Path) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for race in races:
         log.info("building race %s", race.id)
-        total_laps, laps = _load_fastf1_session(race)
+        total_laps, laps, actual_winner = _load_fastf1_session(race)
         out[race.id] = build_curves_for_race(
-            RaceBuildInput(race=race, total_laps=total_laps, laps=laps)
+            RaceBuildInput(
+                race=race,
+                total_laps=total_laps,
+                laps=laps,
+                actual_winner=actual_winner,
+            )
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
