@@ -118,10 +118,13 @@ export function Timeline({
 
   return (
     <div className="space-y-3">
-      <div className="relative">
+      <div ref={trackRef} className="relative h-16 w-full">
+        {/* Stint-blocks container — overflow-hidden keeps each stint's
+            compound-coloured fill clipped to the rounded corners. Drag markers
+            live OUTSIDE this wrapper (further down) so their grip tabs can
+            extend above the bar without being clipped. */}
         <div
-          ref={trackRef}
-          className="relative flex h-16 w-full overflow-hidden rounded-md border border-border bg-card shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]"
+          className="relative flex h-full w-full overflow-hidden rounded-md border border-border bg-card shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]"
         >
           {stints.map((stint, idx) => (
             <button
@@ -151,7 +154,8 @@ export function Timeline({
               </span>
             </button>
           ))}
-          {stints.slice(1).map((stint, i) => {
+        </div>
+        {stints.slice(1).map((stint, i) => {
             const stintIdx = i + 1;
             const leftPercent = ((stint.start - 1) / Math.max(1, totalLaps - 1)) * 100;
             const isActive = draggingIdx === stintIdx || focusedPitIdx === stintIdx;
@@ -173,50 +177,45 @@ export function Timeline({
                 onBlur={() => setFocusedPitIdx((prev) => (prev === stintIdx ? null : prev))}
                 onKeyDown={(e) => handleKeyDown(e, stintIdx)}
                 style={{ left: `${leftPercent}%` }}
-                className={`group absolute top-0 z-20 h-full w-[3px] -translate-x-1/2 cursor-ew-resize transition-[background-color,box-shadow] duration-150 focus:outline-none ${
-                  isActive
-                    ? "bg-primary shadow-[0_0_0_3px_rgba(255,24,1,0.2)]"
-                    : "bg-foreground/70 hover:bg-foreground"
-                }`}
+                className="group absolute top-0 z-20 flex h-full w-5 -translate-x-1/2 cursor-ew-resize items-stretch justify-center focus:outline-none"
               >
-                {/* Top grip handle — the main affordance */}
+                {/* Visible 2px vertical line through the stint bar */}
                 <span
                   aria-hidden
-                  className={`pointer-events-none absolute left-1/2 -top-2 flex h-5 w-6 -translate-x-1/2 items-center justify-center rounded-sm border transition-colors ${
+                  className={`block w-[2px] transition-colors duration-150 ${
                     isActive
-                      ? "border-primary bg-popover"
-                      : "border-foreground/70 bg-popover group-hover:border-foreground"
-                  }`}
-                >
-                  <span className="flex gap-[2px]">
-                    <span
-                      className={`block h-2 w-[1.5px] ${
-                        isActive ? "bg-primary" : "bg-foreground/80"
-                      }`}
-                    />
-                    <span
-                      className={`block h-2 w-[1.5px] ${
-                        isActive ? "bg-primary" : "bg-foreground/80"
-                      }`}
-                    />
-                  </span>
-                </span>
-
-                {/* Bottom notch — subtle directional cue without the clutter of the old diamond */}
-                <span
-                  aria-hidden
-                  className={`pointer-events-none absolute left-1/2 bottom-0 h-[6px] w-[6px] -translate-x-1/2 translate-y-1/2 rotate-45 border-r border-b transition-colors ${
-                    isActive
-                      ? "border-primary bg-primary"
-                      : "border-foreground/70 bg-foreground/70"
+                      ? "bg-primary"
+                      : "bg-foreground/70 group-hover:bg-foreground group-focus:bg-primary"
                   }`}
                 />
 
-                {/* Floating lap readout tooltip, only while active */}
+                {/* Grip tab sitting flush above the bar. This is the primary
+                    drag-affordance — a compact pill with two vertical grip marks. */}
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute left-1/2 bottom-full flex h-3.5 w-[14px] -translate-x-1/2 items-center justify-center gap-[2px] rounded-[3px] border transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary"
+                      : "border-foreground/60 bg-popover group-hover:border-foreground"
+                  }`}
+                >
+                  <span
+                    className={`block h-2 w-[1.5px] ${
+                      isActive ? "bg-white" : "bg-foreground/80"
+                    }`}
+                  />
+                  <span
+                    className={`block h-2 w-[1.5px] ${
+                      isActive ? "bg-white" : "bg-foreground/80"
+                    }`}
+                  />
+                </span>
+
+                {/* Floating lap readout, only while dragging or focused */}
                 {isActive ? (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute left-1/2 -top-11 -translate-x-1/2 rounded-md border border-primary/70 bg-popover px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+                    className="pointer-events-none absolute left-1/2 -top-10 -translate-x-1/2 rounded-md border border-primary/70 bg-popover px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
                   >
                     Lap {draggingIdx === stintIdx && hoverLap !== null ? hoverLap : stint.start}
                   </span>
@@ -224,7 +223,6 @@ export function Timeline({
               </div>
             );
           })}
-        </div>
       </div>
 
       {/* Tick rail */}
