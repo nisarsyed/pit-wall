@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
 
+import { ActualStrategyCard } from "./ActualStrategyCard";
 import { LapTimeChart } from "./LapTimeChart";
-import { StintInspector } from "./StintInspector";
 import { ResultsPanel } from "./ResultsPanel";
 import { ResponsiveBanner } from "./ResponsiveBanner";
+import { StintBreakdown } from "./StintBreakdown";
 import { Timeline } from "./Timeline";
 import { Button } from "./ui/button";
 import { useSimulate } from "../lib/queries";
@@ -44,7 +45,7 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
   useEffect(() => {
     if (!strategy.isValid) return;
     simulate.mutate({ stints: debouncedStints });
-    // We intentionally only re-fire when the debounced strategy changes.
+    // Only re-fire when the debounced strategy changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedStints, strategy.isValid]);
 
@@ -52,51 +53,60 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
   const deltaS = simulate.data?.total_time_vs_actual_s ?? null;
   const warnings = simulate.data?.warnings ?? [];
 
-  const selectedIdx = selectedStintIdx;
-  const selectedStint = selectedIdx !== null ? strategy.stints[selectedIdx] : undefined;
-  const selectedEndLap =
-    selectedIdx !== null && selectedIdx < strategy.stints.length
-      ? selectedIdx + 1 < strategy.stints.length
-        ? strategy.stints[selectedIdx + 1]!.start_lap - 1
-        : race.total_laps
-      : null;
-
   return (
     <>
       <ResponsiveBanner />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="min-w-0 space-y-6">
-          <Timeline
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-8">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Lap timeline
+                </span>
+                <span
+                  aria-hidden
+                  className="h-px w-8 bg-gradient-to-r from-primary/0 via-primary to-primary/0"
+                />
+              </div>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
+                Drag markers · ←/→ nudge · Delete removes
+              </span>
+            </div>
+            <div className="rounded-lg border border-border bg-card/60 p-4">
+              <Timeline
+                totalLaps={race.total_laps}
+                strategy={strategy.stints}
+                selectedStintIdx={selectedStintIdx}
+                onMovePit={(idx, lap) => strategy.movePit(idx, lap)}
+                onSelectStint={setSelectedStintIdx}
+                onRemovePit={(idx) => {
+                  strategy.removePit(idx);
+                  setSelectedStintIdx(null);
+                }}
+              />
+            </div>
+          </section>
+
+          <StintBreakdown
+            stints={strategy.stints}
             totalLaps={race.total_laps}
-            strategy={strategy.stints}
-            selectedStintIdx={selectedStintIdx}
-            onMovePit={(idx, lap) => strategy.movePit(idx, lap)}
-            onSelectStint={setSelectedStintIdx}
-            onRemovePit={(idx) => {
+            compoundsAvailable={compoundsAvailable}
+            onSelectCompound={(idx, compound) => strategy.setCompound(idx, compound)}
+            onRemove={(idx) => {
               strategy.removePit(idx);
               setSelectedStintIdx(null);
             }}
           />
+
           <LapTimeChart
             lapTimes={simulate.data?.lap_times ?? []}
             pitLaps={strategy.stints.slice(1).map((s) => s.start_lap)}
+            stints={strategy.stints}
+            totalLaps={race.total_laps}
           />
-          {selectedStint && selectedIdx !== null && selectedEndLap !== null ? (
-            <StintInspector
-              stintIdx={selectedIdx}
-              stint={selectedStint}
-              endLap={selectedEndLap}
-              laps={selectedEndLap - selectedStint.start_lap + 1}
-              compoundsAvailable={compoundsAvailable}
-              canRemove={selectedIdx > 0}
-              onSelectCompound={(compound) => strategy.setCompound(selectedIdx, compound)}
-              onRemove={() => {
-                strategy.removePit(selectedIdx);
-                setSelectedStintIdx(null);
-              }}
-            />
-          ) : null}
-          <div className="flex gap-2">
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button
               type="button"
               variant="outline"
@@ -115,19 +125,28 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
               <RotateCcw className="mr-1.5 size-3.5" strokeWidth={1.5} aria-hidden />
               Reset to actual
             </Button>
+            {!strategy.isValid ? (
+              <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-warn">
+                Needs ≥2 distinct compounds and a valid pit order
+              </span>
+            ) : null}
           </div>
-          {!strategy.isValid ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-warn">
-              Strategy must use at least 2 distinct compounds and have a valid pit order.
-            </p>
+        </div>
+
+        <div className="space-y-5 lg:sticky lg:top-6 lg:self-start">
+          <ResultsPanel
+            totalTimeS={totalTimeS}
+            deltaS={deltaS}
+            warnings={warnings}
+            loading={simulate.isPending}
+          />
+          {race.actual_winner ? (
+            <ActualStrategyCard
+              winner={race.actual_winner}
+              totalLaps={race.total_laps}
+            />
           ) : null}
         </div>
-        <ResultsPanel
-          totalTimeS={totalTimeS}
-          deltaS={deltaS}
-          warnings={warnings}
-          loading={simulate.isPending}
-        />
       </div>
     </>
   );
