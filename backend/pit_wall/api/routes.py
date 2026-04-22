@@ -1,6 +1,7 @@
 """HTTP routes for the Pit Wall API."""
 
 from fastapi import APIRouter, HTTPException, Request
+from loguru import logger
 
 from pit_wall.api.schemas import (
     ActualWinnerOut,
@@ -119,6 +120,14 @@ def simulate_strategy(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     warnings = warnings_for_strategy(race, strategy)
+
+    rid = getattr(request.state, "request_id", "-")
+    logger.bind(
+        request_id=rid,
+        race_id=race_id,
+        total_time_s=result.total_time_s,
+        warnings_count=len(warnings),
+    ).info("simulate")
 
     return SimulateResponse(
         lap_times=result.lap_times,

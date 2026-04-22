@@ -66,3 +66,20 @@ def test_400_also_wrapped(client: TestClient):
     body = r.json()
     assert body["error"]["code"] == "BAD_REQUEST"
     assert body["error"]["request_id"]
+
+
+def test_unhandled_exception_wrapped_in_error_envelope(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Inject a temporary route that raises an unhandled ValueError.
+    import pit_wall.main as main
+    @main.app.get("/__boom")
+    def boom() -> None:
+        raise ValueError("synthetic boom for test")
+
+    r = client.get("/__boom")
+    assert r.status_code == 500
+    body = r.json()
+    assert body["error"]["code"] == "INTERNAL_ERROR"
+    assert body["error"]["request_id"]
+    assert body["error"]["request_id"] == r.headers.get("X-Request-ID")

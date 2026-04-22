@@ -1,5 +1,6 @@
 """Cross-cutting middleware: CORS, request ID, error envelope, request log line."""
 
+import json
 import os
 import time
 import uuid
@@ -8,7 +9,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from loguru import logger
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -34,20 +35,20 @@ def _status_to_code(status: int) -> str:
 
 async def _request_id_and_log_middleware(
     request: Request,
-    call_next: Callable[[Request], Awaitable[JSONResponse]],
-) -> JSONResponse:
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     rid = request.headers.get(REQUEST_ID_HEADER) or uuid.uuid4().hex[:12]
     setattr(request.state, REQUEST_ID_ATTR, rid)
     start = time.perf_counter()
     try:
         response = await call_next(request)
-    except Exception:
+    except Exception as exc:
         elapsed_ms = int((time.perf_counter() - start) * 1000)
         logger.bind(
             request_id=rid, method=request.method, path=request.url.path,
             status=500, duration_ms=elapsed_ms,
         ).exception("unhandled request error")
-        raise
+        return await _server_error_handler(request, exc)
     elapsed_ms = int((time.perf_counter() - start) * 1000)
     response.headers[REQUEST_ID_HEADER] = rid
     logger.bind(
@@ -82,7 +83,25 @@ async def _validation_exception_handler(
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
-                "message": str(exc.errors()),
+                "message": json.dumps(exc.errors(), default=str),
+                "request_id": rid,
+            }
+        },
+    )
+
+
+async def _server_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    rid = getattr(request.state, REQUEST_ID_ATTR, "-")
+    logger.bind(request_id=rid, path=request.url.path).exception(
+        "unhandled error in handler"
+    )
+    return JSONResponse(
+        status_code=500,
+        headers={REQUEST_ID_HEADER: rid},
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred.",
                 "request_id": rid,
             }
         },
@@ -101,3 +120,4 @@ def install_middleware(app: FastAPI) -> None:
     # FastAPI's add_exception_handler types the handler loosely vs our exact signatures
     app.add_exception_handler(HTTPException, _http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, _validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(Exception, _server_error_handler)
