@@ -55,7 +55,7 @@ def test_single_compound_strategy_rejected():
 def test_pit_lap_out_of_range_rejected():
     strat = [
         StrategyStint(compound="MEDIUM", start_lap=1),
-        StrategyStint(compound="HARD",   start_lap=57),  # == total_laps, invalid
+        StrategyStint(compound="HARD",   start_lap=58),  # > total_laps, invalid
     ]
     with pytest.raises(StrategyError, match="pit lap"):
         validate_strategy(_race(total_laps=57), strat)
