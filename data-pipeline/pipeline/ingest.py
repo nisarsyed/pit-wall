@@ -56,13 +56,21 @@ def extract_valid_stint_laps(laps: pd.DataFrame) -> list[CompoundStintLap]:
     )
     df = df[df["lap_s_internal"] <= df["stint_best_internal"] * TRAFFIC_CUTOFF_RATIO]
 
-    # Assign 1-indexed stint_lap per (Driver, Stint) in LapNumber order.
+    # Assign stint_lap = actual position within the stint (1-indexed).
+    # Computed from LapNumber - stint_start_lap + 1 (NOT a cumcount of survivors),
+    # so that filtered interior laps create a gap in stint_lap values that matches
+    # the simulator's x-axis exactly (see spec §7.1).
     df = df.sort_values(["Driver", "Stint", "LapNumber"])
-    df = df.assign(stint_lap_internal=df.groupby(["Driver", "Stint"]).cumcount() + 1)
+    df = df.assign(
+        _stint_start_lap=df.groupby(["Driver", "Stint"])["LapNumber"].transform("min"),
+    )
+    df = df.assign(
+        _stint_lap=df["LapNumber"] - df["_stint_start_lap"] + 1,
+    )
 
     out: list[CompoundStintLap] = []
     records = df[
-        ["Driver", "Stint", "Compound", "LapNumber", "stint_lap_internal", "lap_s_internal"]
+        ["Driver", "Stint", "Compound", "LapNumber", "_stint_lap", "lap_s_internal"]
     ].to_dict("records")
     for rec in records:
         out.append(
@@ -71,7 +79,7 @@ def extract_valid_stint_laps(laps: pd.DataFrame) -> list[CompoundStintLap]:
                 stint=int(rec["Stint"]),
                 compound=str(rec["Compound"]).upper(),
                 lap_number=int(rec["LapNumber"]),
-                stint_lap=int(rec["stint_lap_internal"]),
+                stint_lap=int(rec["_stint_lap"]),
                 lap_time_s=float(rec["lap_s_internal"]),
             )
         )
