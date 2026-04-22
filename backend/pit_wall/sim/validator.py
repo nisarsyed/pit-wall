@@ -27,15 +27,15 @@ def validate_strategy(race: RaceCurves, strategy: list[StrategyStint]) -> None:
                 f"{prev.start_lap} -> {curr.start_lap}"
             )
 
-    # Pit laps (every start_lap after the first) must be in [2, total_laps].
     for stint in strategy[1:]:
         # Lower bound (start_lap >= 2) is enforced by the strictly-increasing
         # check above (first stint's start_lap is 1). Only the upper bound needs
-        # an explicit check here.
-        if stint.start_lap > race.total_laps:
+        # an explicit check here. Per spec §7.2, pit laps must be in [2, total_laps - 1];
+        # equality with total_laps would imply a zero-lap final stint, which is disallowed.
+        if stint.start_lap >= race.total_laps:
             raise StrategyError(
                 f"pit lap {stint.start_lap} out of range "
-                f"[2, {race.total_laps}]"
+                f"[2, {race.total_laps - 1}]"
             )
 
     # All compounds must be in the race's compound set.

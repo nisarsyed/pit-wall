@@ -3,7 +3,7 @@ import math
 import pytest
 
 from pit_wall.data.curves import CompoundCurve, RaceCurves, StrategyStint
-from pit_wall.sim.simulator import SimulationResult, simulate  # noqa: F401
+from pit_wall.sim.simulator import simulate
 
 
 def _race(total_laps: int = 5) -> RaceCurves:
@@ -50,9 +50,10 @@ def test_simulate_matches_hand_arithmetic_on_flat_curves():
 
 
 def test_tyre_delta_accrues_within_stint():
-    # MEDIUM slope 0.1, intercept 0. 3-lap race, single-stint would be flat+0.1*stint_lap.
+    # MEDIUM slope 0.1, intercept 0. 4-lap race pitting on lap 3.
+    # MEDIUM for laps 1-2, SOFT for laps 3-4.
     race = RaceCurves(
-        name="X", country="X", year=2023, total_laps=3,
+        name="X", country="X", year=2023, total_laps=4,
         base_lap_time_s=90.0, pit_loss_s=20.0,
         compounds={
             "SOFT":   CompoundCurve(slope=0.0, intercept=0.0, r2=1.0, valid_stint_range=(1, 10)),
@@ -64,16 +65,21 @@ def test_tyre_delta_accrues_within_stint():
         StrategyStint(compound="SOFT",   start_lap=3),
     ]
     result = simulate(race, strat)
-    # MEDIUM at stint_lap 1 -> tyre_delta = 0.1. stint_lap 2 -> 0.2.
-    # SOFT at stint_lap 1 (lap 3, pit lap, fresh stint) -> 0.0.
-    # Fuel: lap 1 110*0.035=3.85, lap 2 55*0.035=1.925, lap 3 0.
+    # Fuel: total_laps=4, so fuel_kg_remaining(lap, 4) = 110 * (1 - (lap-1)/3).
+    # lap 1: 110 kg → fuel_delta = 3.85
+    # lap 2: 110 * 2/3 ≈ 73.3333 → fuel_delta ≈ 2.5667
+    # lap 3: 110 * 1/3 ≈ 36.6667 → fuel_delta ≈ 1.2833, + pit_loss 20
+    # lap 4: 0 → fuel_delta = 0
+    # MEDIUM tyre_delta: slope*stint_lap + intercept = 0.1*stint_lap + 0.
+    # SOFT: flat 0.
     expected = [
-        90.0 + 0.1 + 3.85,
-        90.0 + 0.2 + 1.925,
-        90.0 + 0.0 + 0.0 + 20.0,  # SOFT stint_lap=1, pit lap
+        90.0 + 0.1 + 110.0 * 1.0        * 0.035,   # lap 1: MEDIUM stint_lap=1, fuel 110
+        90.0 + 0.2 + 110.0 * (2.0 / 3.0) * 0.035,  # lap 2: MEDIUM stint_lap=2, fuel 110*2/3
+        90.0 + 0.0 + 110.0 * (1.0 / 3.0) * 0.035 + 20.0,  # lap 3: SOFT stint_lap=1, pit
+        90.0 + 0.0 + 0.0,                           # lap 4: SOFT stint_lap=2, fuel=0
     ]
     for got, want in zip(result.lap_times, expected, strict=True):
-        assert math.isclose(got, want, rel_tol=1e-9)
+        assert math.isclose(got, want, rel_tol=1e-9), f"got {got}, want {want}"
 
 
 def test_simulate_raises_on_invalid_strategy():
