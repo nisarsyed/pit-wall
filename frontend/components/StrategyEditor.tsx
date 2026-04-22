@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { CompoundPicker } from "./CompoundPicker";
+import { LapTimeChart } from "./LapTimeChart";
 import { ResultsPanel } from "./ResultsPanel";
 import { Timeline } from "./Timeline";
 import { useSimulate } from "../lib/queries";
@@ -62,6 +63,10 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
             strategy.removePit(idx);
             setSelectedStintIdx(null);
           }}
+        />
+        <LapTimeChart
+          lapTimes={simulate.data?.lap_times ?? []}
+          pitLaps={strategy.stints.slice(1).map((s) => s.start_lap)}
         />
         {selected !== undefined && selectedStintIdx !== null ? (
           <div className="rounded-lg border border-white/10 bg-white/5 p-4">
