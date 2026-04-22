@@ -11,6 +11,13 @@ from pit_wall.data.curves import RaceCurves, StrategyStint
 from pit_wall.sim.fuel import FUEL_PENALTY_S_PER_KG, fuel_kg_remaining
 from pit_wall.sim.validator import validate_strategy
 
+# Per-lap tyre penalty applied beyond a compound's fitted valid_stint_range[1].
+# Scales linearly with excess stint lap, so the last lap of a long overshoot
+# carries a much larger cost than the first — matching how real tyres fall off
+# the cliff once grip drops. Keeps the linear-fit simulator from inventing
+# implausible "skip a pit stop" strategies that the fit data doesn't support.
+CLIFF_SLOPE_S_PER_LAP = 0.25
+
 
 @dataclass(frozen=True)
 class SimulationResult:
@@ -50,6 +57,8 @@ def simulate(
         stint, stint_lap = _stint_at_lap(strategy, lap)
         curve = race.compounds[stint.compound]
         tyre_delta = curve.intercept + curve.slope * stint_lap
+        cliff_excess = max(0, stint_lap - curve.valid_stint_range[1])
+        tyre_delta += CLIFF_SLOPE_S_PER_LAP * cliff_excess
         fuel_delta = fuel_kg_remaining(lap, race.total_laps) * FUEL_PENALTY_S_PER_KG
         lap_time = (
             race.base_lap_time_s + tyre_delta + fuel_delta + race.calibration_offset_s

@@ -12,6 +12,8 @@ def curated_curves() -> dict[str, RaceCurves]:
     return load_curves()
 
 
+# Winners' curated strategies all stay within valid_stint_range, so the cliff
+# contribution is zero and calibration absorbs only the linear-fit residual.
 def test_calibrated_winner_strategy_has_near_zero_delta(
     curated_curves: dict[str, RaceCurves],
 ) -> None:

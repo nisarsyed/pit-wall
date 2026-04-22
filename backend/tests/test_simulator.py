@@ -3,7 +3,7 @@ import math
 import pytest
 
 from pit_wall.data.curves import CompoundCurve, RaceCurves, StrategyStint
-from pit_wall.sim.simulator import simulate
+from pit_wall.sim.simulator import CLIFF_SLOPE_S_PER_LAP, simulate
 
 
 def _race(total_laps: int = 5) -> RaceCurves:
@@ -110,3 +110,72 @@ def test_total_vs_actual_delta_none_when_no_baseline():
     ]
     result = simulate(race, strat)  # no actual_winning_time_s
     assert result.total_time_vs_actual_s is None
+
+
+def _cliff_race(total_laps: int, valid_max: int) -> RaceCurves:
+    """Single-stint race with flat curves and a tight valid_stint_range for cliff tests."""
+    flat = CompoundCurve(
+        slope=0.0, intercept=0.0, r2=1.0, valid_stint_range=(1, valid_max)
+    )
+    # A second compound satisfies the two-distinct-compounds rule for a lone
+    # two-stint strategy when needed; cliff tests run single-stint, so supply
+    # both but only use one.
+    return RaceCurves(
+        name="Cliff", country="X", year=2023,
+        total_laps=total_laps,
+        base_lap_time_s=90.0,
+        pit_loss_s=20.0,
+        compounds={
+            "SOFT":   flat,
+            "MEDIUM": CompoundCurve(slope=0.0, intercept=0.0, r2=1.0, valid_stint_range=(1, 50)),
+        },
+    )
+
+
+def test_cliff_penalty_zero_within_range():
+    # 5-lap race, valid_stint_range covers the whole stint, so cliff contributes
+    # nothing — totals must match the pre-cliff flat-curve expectation.
+    race = _cliff_race(total_laps=5, valid_max=10)
+    strat = [
+        StrategyStint(compound="SOFT",   start_lap=1),
+        StrategyStint(compound="MEDIUM", start_lap=3),  # pit on lap 3
+    ]
+    result = simulate(race, strat)
+    expected_lap_times = [
+        90.0 + 3.85,                   # lap 1
+        90.0 + 2.8875,                 # lap 2
+        90.0 + 1.925 + 20.0,           # lap 3 (pit)
+        90.0 + 0.9625,                 # lap 4
+        90.0 + 0.0,                    # lap 5
+    ]
+    for got, want in zip(result.lap_times, expected_lap_times, strict=True):
+        assert math.isclose(got, want, rel_tol=1e-9), f"got {got}, want {want}"
+
+
+def test_cliff_penalty_accumulates_past_range():
+    # 20-lap race, long SOFT stint (1-14), short MEDIUM (15-20).
+    # SOFT valid_stint_range: tight race has (1, 5) so laps 6-14 of stint incur cliff.
+    # Compare tight vs loose (valid_max=50) — cliff delta isolates cleanly.
+    tight = _cliff_race(total_laps=20, valid_max=5)
+    loose = _cliff_race(total_laps=20, valid_max=50)
+    strat = [
+        StrategyStint(compound="SOFT",   start_lap=1),
+        StrategyStint(compound="MEDIUM", start_lap=15),
+    ]
+    tight_result = simulate(tight, strat)
+    loose_result = simulate(loose, strat)
+
+    # SOFT laps 1-5 no cliff; SOFT laps 6-14 cliff = 0.25 * (stint_lap - 5).
+    # MEDIUM has valid_max=50 in both races, never cliffs.
+    expected_cliff_per_lap = (
+        [0.0] * 5
+        + [CLIFF_SLOPE_S_PER_LAP * (n - 5) for n in range(6, 15)]  # SOFT laps 6-14
+        + [0.0] * 6                                                  # MEDIUM laps 15-20
+    )
+    assert len(expected_cliff_per_lap) == 20
+    for lap_idx, expected in enumerate(expected_cliff_per_lap):
+        tight_lap = tight_result.lap_times[lap_idx]
+        loose_lap = loose_result.lap_times[lap_idx]
+        assert math.isclose(tight_lap - loose_lap, expected, rel_tol=1e-9, abs_tol=1e-9), (
+            f"lap {lap_idx + 1}: cliff delta {tight_lap - loose_lap}, expected {expected}"
+        )

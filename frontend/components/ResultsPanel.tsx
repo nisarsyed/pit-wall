@@ -30,14 +30,21 @@ interface Props {
 }
 
 export function ResultsPanel({ totalTimeS, deltaS, warnings, loading }: Props): React.ReactNode {
+  // Extrapolation warnings mean the stint length lies outside the curve's fit
+  // range, so the sim is guessing — downgrade the delta to muted + "≈" prefix.
+  // Low-R² warnings on their own don't get muted: the fit is noisy but strategies
+  // within range are still in meaningful comparison territory.
+  const isExtrapolated = warnings.some((w) => w.includes("extrapolated"));
   const deltaClass =
     deltaS === null
       ? "text-muted-foreground"
-      : deltaS > 0
-        ? "text-red-400"
-        : deltaS < 0
-          ? "text-green-400"
-          : "text-muted-foreground";
+      : isExtrapolated
+        ? "text-muted-foreground/80"
+        : deltaS > 0
+          ? "text-red-400"
+          : deltaS < 0
+            ? "text-green-400"
+            : "text-muted-foreground";
 
   return (
     <aside className="sticky top-8 space-y-5 rounded-lg border border-border bg-card/80 p-6 backdrop-blur-sm">
@@ -61,7 +68,11 @@ export function ResultsPanel({ totalTimeS, deltaS, warnings, loading }: Props): 
           data-testid="delta"
           className={`pitwall-delta-pulse mt-2 font-mono text-3xl tabular-nums leading-none ${deltaClass}`}
         >
-          {deltaS === null ? "—" : formatDelta(deltaS)}
+          {deltaS === null
+            ? "—"
+            : isExtrapolated
+              ? `≈ ${formatDelta(deltaS)}`
+              : formatDelta(deltaS)}
         </p>
       </div>
 

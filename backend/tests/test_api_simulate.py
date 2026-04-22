@@ -110,3 +110,23 @@ def test_simulate_rejects_empty_stints():
     # Pydantic min_length=1 catches this as a 422 validation error.
     # After Task 3.7 installs the envelope+handler, both 400 and 422 remain acceptable.
     assert r.status_code in (400, 422)
+
+
+def test_extrapolated_long_stint_delta_is_positive():
+    # Hungary 1-stop with a 54-lap SOFT (valid_stint_range 2-13). Pre-cliff the
+    # model returned a physically impossible -36s delta because the near-flat
+    # SOFT fit (r²≈0.02) didn't penalise over-run. Post-cliff, the stint pays
+    # 0.25s × excess per lap, which more than erases the ~21s saved from
+    # skipping a pit stop.
+    strat = [
+        {"compound": "MEDIUM", "start_lap": 1},
+        {"compound": "SOFT",   "start_lap": 17},
+    ]
+    with TestClient(app) as client:
+        resp = _post_simulate(client, "2023_hungary", strat)
+    assert resp["status"] == 200
+    body = resp["body"]
+    assert body["total_time_vs_actual_s"] > 0, (
+        f"Expected positive delta for 54-lap SOFT stint, got {body['total_time_vs_actual_s']}"
+    )
+    assert any("extrapolated" in w for w in body["warnings"])

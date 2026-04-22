@@ -43,4 +43,33 @@ describe("ResultsPanel", () => {
     render(<ResultsPanel totalTimeS={null} deltaS={null} warnings={[]} loading={true} />);
     expect(screen.getByText(/simulating/i)).toBeInTheDocument();
   });
+
+  it("mutes the delta and prefixes ≈ when an extrapolation warning is present", () => {
+    const { container } = render(
+      <ResultsPanel
+        totalTimeS={5500}
+        deltaS={-30}
+        warnings={["stint 2 (SOFT, 54 laps) extrapolated beyond fit range 2-13"]}
+        loading={false}
+      />,
+    );
+    const delta = container.querySelector('[data-testid="delta"]');
+    expect(delta?.className).not.toMatch(/red|green/);
+    expect(delta?.textContent?.startsWith("≈")).toBe(true);
+  });
+
+  it("keeps delta colour on low-R² warnings alone (no extrapolation)", () => {
+    const { container } = render(
+      <ResultsPanel
+        totalTimeS={5500}
+        deltaS={-30}
+        warnings={["compound HARD fit has low R² (0.35); predictions may be noisy"]}
+        loading={false}
+      />,
+    );
+    const delta = container.querySelector('[data-testid="delta"]');
+    // Noisy fit but in-range stints — still a meaningful comparison.
+    expect(delta?.className).toMatch(/green/);
+    expect(delta?.textContent?.startsWith("≈")).toBe(false);
+  });
 });
