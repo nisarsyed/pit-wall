@@ -1,0 +1,167 @@
+{
+  "2023_bahrain": {
+    "actual_winner": {
+      "name": "Max Verstappen",
+      "strategy": [
+        {
+          "compound": "SOFT",
+          "start_lap": 1
+        },
+        {
+          "compound": "SOFT",
+          "start_lap": 15
+        },
+        {
+          "compound": "HARD",
+          "start_lap": 37
+        }
+      ],
+      "total_time_s": 5636.736
+    },
+    "base_lap_time_s": 95.3829375,
+    "compounds": {
+      "HARD": {
+        "intercept": 0.3321825519809807,
+        "r2": 0.47086087605473703,
+        "slope": 0.09165522140365429,
+        "valid_stint_range": [
+          2,
+          28
+        ]
+      },
+      "MEDIUM": {
+        "intercept": -0.5062232142857074,
+        "r2": 0.5557285570266319,
+        "slope": 0.3159999999999995,
+        "valid_stint_range": [
+          2,
+          8
+        ]
+      },
+      "SOFT": {
+        "intercept": 0.6235166797838111,
+        "r2": 0.16557985936334318,
+        "slope": 0.10295150014827528,
+        "valid_stint_range": [
+          2,
+          20
+        ]
+      }
+    },
+    "country": "Bahrain",
+    "name": "Bahrain Grand Prix",
+    "pit_loss_s": 22.4,
+    "total_laps": 57,
+    "year": 2023
+  },
+  "2023_hungary": {
+    "actual_winner": {
+      "name": "Max Verstappen",
+      "strategy": [
+        {
+          "compound": "MEDIUM",
+          "start_lap": 1
+        },
+        {
+          "compound": "HARD",
+          "start_lap": 24
+        },
+        {
+          "compound": "MEDIUM",
+          "start_lap": 52
+        }
+      ],
+      "total_time_s": 5888.634
+    },
+    "base_lap_time_s": 81.39027938808373,
+    "compounds": {
+      "HARD": {
+        "intercept": 0.4858144143986438,
+        "r2": 0.35406723213001445,
+        "slope": 0.07769622120532273,
+        "valid_stint_range": [
+          2,
+          37
+        ]
+      },
+      "MEDIUM": {
+        "intercept": 0.20530885731779205,
+        "r2": 0.3100504965531604,
+        "slope": 0.07143365925717884,
+        "valid_stint_range": [
+          2,
+          39
+        ]
+      },
+      "SOFT": {
+        "intercept": 0.7775266463990317,
+        "r2": 0.015363771200943233,
+        "slope": 0.01101692903548246,
+        "valid_stint_range": [
+          2,
+          13
+        ]
+      }
+    },
+    "country": "Hungary",
+    "name": "Hungarian Grand Prix",
+    "pit_loss_s": 20.9,
+    "total_laps": 70,
+    "year": 2023
+  },
+  "2024_british": {
+    "actual_winner": {
+      "name": "Lewis Hamilton",
+      "strategy": [
+        {
+          "compound": "MEDIUM",
+          "start_lap": 1
+        },
+        {
+          "compound": "INTERMEDIATE",
+          "start_lap": 28
+        },
+        {
+          "compound": "SOFT",
+          "start_lap": 39
+        }
+      ],
+      "total_time_s": 4947.059
+    },
+    "base_lap_time_s": 88.84781630546956,
+    "compounds": {
+      "HARD": {
+        "intercept": -0.7448585200024344,
+        "r2": 0.5327170889808607,
+        "slope": 0.1650600922722028,
+        "valid_stint_range": [
+          2,
+          17
+        ]
+      },
+      "MEDIUM": {
+        "intercept": -0.29626598528485304,
+        "r2": 0.31143078371800115,
+        "slope": 0.14100172578594083,
+        "valid_stint_range": [
+          2,
+          24
+        ]
+      },
+      "SOFT": {
+        "intercept": 0.2562550797088096,
+        "r2": 0.34437741591080384,
+        "slope": 0.20722211438018756,
+        "valid_stint_range": [
+          2,
+          17
+        ]
+      }
+    },
+    "country": "United Kingdom",
+    "name": "British Grand Prix",
+    "pit_loss_s": 21.2,
+    "total_laps": 52,
+    "year": 2024
+  }
+}
