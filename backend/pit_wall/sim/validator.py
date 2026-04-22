@@ -1,16 +1,8 @@
 """Strategy validation (hard errors → 400) and warnings (non-blocking)."""
 
-from pydantic import BaseModel
-
-from pit_wall.data.curves import RaceCurves
+from pit_wall.data.curves import RaceCurves, StrategyStint
 
 LOW_R2_THRESHOLD = 0.5
-
-
-class StrategyStint(BaseModel):
-    model_config = {"frozen": True}
-    compound: str
-    start_lap: int
 
 
 class StrategyError(ValueError):
@@ -37,7 +29,10 @@ def validate_strategy(race: RaceCurves, strategy: list[StrategyStint]) -> None:
 
     # Pit laps (every start_lap after the first) must be in [2, total_laps - 1].
     for stint in strategy[1:]:
-        if stint.start_lap < 2 or stint.start_lap >= race.total_laps:
+        # Lower bound (start_lap >= 2) is enforced by the strictly-increasing
+        # check above (first stint's start_lap is 1). Only the upper bound needs
+        # an explicit check here.
+        if stint.start_lap >= race.total_laps:
             raise StrategyError(
                 f"pit lap {stint.start_lap} out of range "
                 f"[2, {race.total_laps - 1}]"
@@ -73,6 +68,7 @@ def warnings_for_strategy(race: RaceCurves, strategy: list[StrategyStint]) -> li
     but may return noisy warnings).
     """
     out: list[str] = []
+    r2_warned: set[str] = set()
     for idx, stint in enumerate(strategy):
         curve = race.compounds.get(stint.compound)
         if curve is None:
@@ -84,7 +80,8 @@ def warnings_for_strategy(race: RaceCurves, strategy: list[StrategyStint]) -> li
                 f"extrapolated beyond fit range "
                 f"{curve.valid_stint_range[0]}-{curve.valid_stint_range[1]}"
             )
-        if curve.r2 < LOW_R2_THRESHOLD:
+        if curve.r2 < LOW_R2_THRESHOLD and stint.compound not in r2_warned:
+            r2_warned.add(stint.compound)
             out.append(
                 f"compound {stint.compound} fit has low R² ({curve.r2:.2f}); "
                 f"predictions may be noisy"

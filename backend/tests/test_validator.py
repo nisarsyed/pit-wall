@@ -1,9 +1,8 @@
 import pytest
 
-from pit_wall.data.curves import CompoundCurve, RaceCurves
+from pit_wall.data.curves import CompoundCurve, RaceCurves, StrategyStint
 from pit_wall.sim.validator import (
     StrategyError,
-    StrategyStint,
     validate_strategy,
     warnings_for_strategy,
 )
@@ -111,3 +110,21 @@ def test_no_warnings_for_clean_strategy():
         StrategyStint(compound="HARD",   start_lap=25),
     ]
     assert warnings_for_strategy(_race(), strat) == []
+
+
+def test_low_r2_warning_dedups_across_repeated_compound():
+    race = _race(
+        compounds={
+            # r2=0.3 is below LOW_R2_THRESHOLD (0.5) — intentionally low
+            "MEDIUM": CompoundCurve(slope=0.05, intercept=0.0, r2=0.3, valid_stint_range=(1, 28)),
+            "HARD":   CompoundCurve(slope=0.04, intercept=0.3, r2=0.8, valid_stint_range=(1, 38)),
+        }
+    )
+    strat = [
+        StrategyStint(compound="MEDIUM", start_lap=1),
+        StrategyStint(compound="HARD",   start_lap=20),
+        StrategyStint(compound="MEDIUM", start_lap=45),
+    ]
+    warns = warnings_for_strategy(race, strat)
+    medium_low_r2 = [w for w in warns if "MEDIUM" in w and "R²" in w]
+    assert len(medium_low_r2) == 1, f"expected 1 low-R² warning for MEDIUM, got {medium_low_r2}"
