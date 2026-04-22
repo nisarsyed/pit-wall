@@ -24,7 +24,7 @@ export default async function RacePage({ params }: PageProps): Promise<React.Rea
     <main className="mx-auto max-w-6xl px-6 py-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold">{race.name}</h1>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           {race.year} · {race.country} · {race.total_laps} laps
           {race.actual_winner
             ? ` · Winner: ${race.actual_winner.name} (${Math.round(

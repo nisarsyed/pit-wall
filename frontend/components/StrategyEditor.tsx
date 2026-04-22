@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus, RotateCcw } from "lucide-react";
 
 import { LapTimeChart } from "./LapTimeChart";
 import { StintInspector } from "./StintInspector";
 import { ResultsPanel } from "./ResultsPanel";
+import { ResponsiveBanner } from "./ResponsiveBanner";
 import { Timeline } from "./Timeline";
+import { Button } from "./ui/button";
 import { useSimulate } from "../lib/queries";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
 import { useStrategy } from "../lib/useStrategy";
@@ -59,66 +62,73 @@ export function StrategyEditor({ race }: { race: RaceDetail }): React.ReactNode 
       : null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <div className="space-y-6">
-        <Timeline
-          totalLaps={race.total_laps}
-          strategy={strategy.stints}
-          selectedStintIdx={selectedStintIdx}
-          onMovePit={(idx, lap) => strategy.movePit(idx, lap)}
-          onSelectStint={setSelectedStintIdx}
-          onRemovePit={(idx) => {
-            strategy.removePit(idx);
-            setSelectedStintIdx(null);
-          }}
-        />
-        <LapTimeChart
-          lapTimes={simulate.data?.lap_times ?? []}
-          pitLaps={strategy.stints.slice(1).map((s) => s.start_lap)}
-        />
-        {selectedStint && selectedIdx !== null && selectedEndLap !== null ? (
-          <StintInspector
-            stintIdx={selectedIdx}
-            stint={selectedStint}
-            endLap={selectedEndLap}
-            laps={selectedEndLap - selectedStint.start_lap + 1}
-            compoundsAvailable={compoundsAvailable}
-            canRemove={selectedIdx > 0}
-            onSelectCompound={(compound) => strategy.setCompound(selectedIdx, compound)}
-            onRemove={() => {
-              strategy.removePit(selectedIdx);
+    <>
+      <ResponsiveBanner />
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <div className="space-y-6">
+          <Timeline
+            totalLaps={race.total_laps}
+            strategy={strategy.stints}
+            selectedStintIdx={selectedStintIdx}
+            onMovePit={(idx, lap) => strategy.movePit(idx, lap)}
+            onSelectStint={setSelectedStintIdx}
+            onRemovePit={(idx) => {
+              strategy.removePit(idx);
               setSelectedStintIdx(null);
             }}
           />
-        ) : null}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={strategy.addPit}
-            className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10"
-          >
-            + Add pit stop
-          </button>
-          <button
-            type="button"
-            onClick={strategy.reset}
-            className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10"
-          >
-            Reset to actual strategy
-          </button>
+          <LapTimeChart
+            lapTimes={simulate.data?.lap_times ?? []}
+            pitLaps={strategy.stints.slice(1).map((s) => s.start_lap)}
+          />
+          {selectedStint && selectedIdx !== null && selectedEndLap !== null ? (
+            <StintInspector
+              stintIdx={selectedIdx}
+              stint={selectedStint}
+              endLap={selectedEndLap}
+              laps={selectedEndLap - selectedStint.start_lap + 1}
+              compoundsAvailable={compoundsAvailable}
+              canRemove={selectedIdx > 0}
+              onSelectCompound={(compound) => strategy.setCompound(selectedIdx, compound)}
+              onRemove={() => {
+                strategy.removePit(selectedIdx);
+                setSelectedStintIdx(null);
+              }}
+            />
+          ) : null}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={strategy.addPit}
+              className="font-mono text-[11px] uppercase tracking-[0.2em]"
+            >
+              <Plus className="mr-1.5 size-3.5" strokeWidth={1.5} aria-hidden />
+              Add pit stop
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={strategy.reset}
+              className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground"
+            >
+              <RotateCcw className="mr-1.5 size-3.5" strokeWidth={1.5} aria-hidden />
+              Reset to actual
+            </Button>
+          </div>
+          {!strategy.isValid ? (
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-warn">
+              Strategy must use at least 2 distinct compounds and have a valid pit order.
+            </p>
+          ) : null}
         </div>
-        {!strategy.isValid ? (
-          <p className="text-sm text-amber-300">
-            Strategy must use at least 2 distinct compounds and have a valid pit order.
-          </p>
-        ) : null}
+        <ResultsPanel
+          totalTimeS={totalTimeS}
+          deltaS={deltaS}
+          warnings={warnings}
+          loading={simulate.isPending}
+        />
       </div>
-      <ResultsPanel
-        totalTimeS={totalTimeS}
-        deltaS={deltaS}
-        warnings={warnings}
-        loading={simulate.isPending}
-      />
-    </div>
+    </>
   );
 }
