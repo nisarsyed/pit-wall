@@ -1,5 +1,10 @@
 "use client";
 
+import { AlertTriangle, Loader2 } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Separator } from "./ui/separator";
+
 function formatDuration(seconds: number): string {
   const total = Math.round(seconds);
   const h = Math.floor(total / 3600);
@@ -27,37 +32,63 @@ interface Props {
 export function ResultsPanel({ totalTimeS, deltaS, warnings, loading }: Props): React.ReactNode {
   const deltaClass =
     deltaS === null
-      ? "text-gray-400"
+      ? "text-muted-foreground"
       : deltaS > 0
         ? "text-red-400"
         : deltaS < 0
           ? "text-green-400"
-          : "text-gray-300";
+          : "text-muted-foreground";
 
   return (
-    <aside className="space-y-4 rounded-lg border border-white/10 bg-white/5 p-6">
+    <aside className="sticky top-8 space-y-5 rounded-lg border border-border bg-card/80 p-6 backdrop-blur-sm">
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-500">Total time</p>
-        <p className="mt-1 font-mono text-3xl tabular-nums">
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Total time
+        </p>
+        <p className="mt-2 font-mono text-4xl tabular-nums text-foreground leading-none">
           {totalTimeS === null ? "—" : formatDuration(totalTimeS)}
         </p>
       </div>
+
+      <Separator />
+
       <div>
-        <p className="text-xs uppercase tracking-wide text-gray-500">Vs actual winner</p>
-        <p data-testid="delta" className={`mt-1 font-mono text-2xl tabular-nums ${deltaClass}`}>
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Vs actual winner
+        </p>
+        <p
+          key={`delta-${deltaS ?? "null"}`}
+          data-testid="delta"
+          className={`pitwall-delta-pulse mt-2 font-mono text-3xl tabular-nums leading-none ${deltaClass}`}
+        >
           {deltaS === null ? "—" : formatDelta(deltaS)}
         </p>
       </div>
-      {loading ? <p className="text-sm text-gray-400">Simulating…</p> : null}
+
+      {loading ? (
+        <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          <Loader2 className="size-3 animate-spin" aria-hidden />
+          Simulating…
+        </p>
+      ) : null}
+
       {warnings.length > 0 ? (
-        <div>
-          <p className="text-xs uppercase tracking-wide text-amber-400">Warnings</p>
-          <ul className="mt-2 space-y-1 text-sm text-amber-300">
-            {warnings.map((w, idx) => (
-              <li key={idx}>• {w}</li>
-            ))}
-          </ul>
-        </div>
+        <Alert className="border-warn/40 bg-warn/10 text-foreground">
+          <AlertTriangle className="size-4 text-warn" aria-hidden />
+          <AlertTitle className="font-mono text-[10px] uppercase tracking-[0.3em] text-warn">
+            Model warnings
+          </AlertTitle>
+          <AlertDescription>
+            <ul role="list" className="mt-2 space-y-1.5 text-xs text-foreground/80">
+              {warnings.map((w, idx) => (
+                <li role="listitem" key={idx} className="flex gap-2">
+                  <span aria-hidden className="text-warn">•</span>
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
     </aside>
   );
